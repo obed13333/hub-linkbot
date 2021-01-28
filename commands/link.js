@@ -17,15 +17,15 @@ module.exports = {
     cooldown: 10,
 	run: async (bot, message, args) => {
         let guild = bot.guilds.cache.get(process.env.BOT_PRIMARYGUILD)
-        var database = editJsonFile('database.json', {autosave: true})
-        let users = database.get('users')
+        let database = admin.firestore();
+        let users = await database.collection('users').get()
         if (users) {
-            let entries = Object.entries(users)
-            let set = entries.find(u => {if (u[1].verify.status == 'link') {return u[1].verify.value == args.join(' ')} else {return false}})
+            let entries = users.docs
+            let set = entries.find(u => {if (u.data().verify.status == 'link') {return u.data().verify.value == args.join(' ')} else {return false}})
             if (set) {
-                let index = set[0]
-                let value = set[1]
-                database.set('users.'+index+'.verify', {status:'complete',value:message.author.id})
+                let index = set.id
+                let value = set.data()
+                await database.collection('users').doc(index).update({verify: {status:'complete',value:message.author.id}})
                 let robloxUsername = await bot.functions.updateMember(guild.members.cache.find(m => m.user.id == message.author.id))
                 if (robloxUsername !== false && robloxUsername !== guild.members.cache.find(m => m.user.id == message.author.id).displayName && guild.members.cache.find(m => m.user.id == message.author.id).id !== guild.owner.id && process.env.HUB_CHANGENICKNAME == 'true' && guild.members.cache.find(m => m.user.id == message.author.id).roles.highest.position < guild.me.roles.highest.position && guild.me.hasPermission('MANAGE_NICKNAMES', true)) guild.members.cache.find(m => m.user.id == message.author.id).setNickname(robloxUsername)
                 let ThisEmbed = new Discord.MessageEmbed()

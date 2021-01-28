@@ -23,7 +23,7 @@ module.exports = {
     ],
     cooldown: 5,
 	run: async (bot, message, args) => {
-        var database = editJsonFile('database.json', {autosave: true})
+        let database = admin.firestore();
         let guild = bot.guilds.cache.get(process.env.BOT_PRIMARYGUILD)
         if (!(args.length >= 2)) {
             let ThisEmbed = new Discord.MessageEmbed()
@@ -36,7 +36,7 @@ module.exports = {
             await message.channel.send(ThisEmbed)
             return
         }
-        if (database.get('products.'+args[0])) {
+        if ((await database.collection('products').doc(args[0]).get()).exists) {
             let ThisEmbed = new Discord.MessageEmbed()
                 .setColor(Number(process.env.BOT_EMBEDCOLOR))
                 .setAuthor(message.author.username, message.author.displayAvatarURL())
@@ -86,7 +86,7 @@ module.exports = {
             request.get(fileMessage.attachments.first().url)
                 .on('error', console.error)
                 .pipe(fs.createWriteStream('product-files/'+index+'.'+ext[ext.length - 1]));
-            database.set('products.'+index, { name: name, path: 'product-files/'+index+'.'+ext[ext.length - 1] })
+            await database.collection('products').doc(index).update({ path: 'product-files/'+index+'.'+ext[ext.length - 1] })
             let ThisEmbed = new Discord.MessageEmbed()
                 .setColor(Number(process.env.BOT_EMBEDCOLOR))
                 .setAuthor(message.author.username, message.author.displayAvatarURL())
@@ -102,7 +102,7 @@ module.exports = {
             request.get(message.attachments.first().url)
                 .on('error', console.error)
                 .pipe(fs.createWriteStream('product-files/'+index+'.'+ext[ext.length - 1]));
-            database.set('products.'+index, { name: name, path: 'product-files/'+index+'.'+ext[ext.length - 1] })
+            await database.collection('products').doc(index).update({ path: 'product-files/'+index+'.'+ext[ext.length - 1] })
             let ThisEmbed = new Discord.MessageEmbed()
                 .setColor(Number(process.env.BOT_EMBEDCOLOR))
                 .setAuthor(message.author.username, message.author.displayAvatarURL())

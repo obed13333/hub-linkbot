@@ -17,8 +17,8 @@ module.exports = {
     ],
     cooldown: 10,
 	run: async (bot, message, args) => {
-        var database = editJsonFile('database.json', {autosave: true})
-        let users = database.get('users')
+        let database = admin.firestore();
+        let users = await database.collection('users').get()
         let guild = bot.guilds.cache.get(process.env.BOT_PRIMARYGUILD)
         async function getMember(message, info, guild) {
             await guild.members.fetch()
@@ -37,28 +37,28 @@ module.exports = {
             return
         }
         let member = await getMember(message, args.join(' '), guild)
-        if (users) {
-            let entries = Object.entries(users)
-            var set = entries.find(u => {if (u[1].verify.status == 'complete') {return u[0] == args.join(' ')} else {return false}})
-            if (!set) set = entries.find(u => {if (u[1].verify.status == 'complete') {return u[1].robloxId == args.join(' ')} else {return false}})
-            if (!set && member) set = entries.find(u => {if (u[1].verify.status == 'complete') {return u[1].verify.value == member.user.id} else {return false}})
+        if (!users.empty) {
+            let entries = users.docs
+            var set = entries.find(u => {if (u.data().verify.status == 'complete') {return u.id == args.join(' ')} else {return false}})
+            if (!set) set = entries.find(u => {if (u.data().verify.status == 'complete') {return u.data().robloxId == args.join(' ')} else {return false}})
+            if (!set && member) set = entries.find(u => {if (u.data().verify.status == 'complete') {return u.data().verify.value == member.user.id} else {return false}})
             if (set) {
-                let index = set[0]
-                let value = set[1]
-		function randomString(length, chars) {
-		    var mask = '';
-		    if (chars.indexOf('a') > -1) mask += 'abcdefghijklmnopqrstuvwxyz';
-		    if (chars.indexOf('A') > -1) mask += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-		    if (chars.indexOf('#') > -1) mask += '0123456789';
-		    if (chars.indexOf('!') > -1) mask += '~`!@#$%^&*()_+-={}[]:";\'<>?,./|\\';
-		    var result = '';
-		    for (var i = length; i > 0; --i) result += mask[Math.floor(Math.random() * mask.length)];
-		    var links = database.get('users')
-		    if (links) if (Object.values(links).find(k => {if (k.verify.status == 'link') {return k.verify.value == result} else {return false}})) return randomString(length, chars)
-		    return result;
-		}
-		let linkCode = randomString(6, 'a#');
-                database.set('users.'+index+'.verify', {status:'link',value:linkCode})
+                let index = set.id
+                let value = set.data()
+                function randomString(length, chars) {
+                    var mask = '';
+                    if (chars.indexOf('a') > -1) mask += 'abcdefghijklmnopqrstuvwxyz';
+                    if (chars.indexOf('A') > -1) mask += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+                    if (chars.indexOf('#') > -1) mask += '0123456789';
+                    if (chars.indexOf('!') > -1) mask += '~`!@#$%^&*()_+-={}[]:";\'<>?,./|\\';
+                    var result = '';
+                    for (var i = length; i > 0; --i) result += mask[Math.floor(Math.random() * mask.length)];
+                    var links = await database.collection('users').get()
+                    if (!links.empty) if (links.docs.find(k => {if (k.data().verify.status == 'link') {return k.data().verify.value == result} else {return false}})) return randomString(length, chars)
+                    return result;
+                }
+                let linkCode = randomString(6, 'a#');
+                await database.collection('users').doc(index).update({verify: {status:'link',value:linkCode}})
                 await bot.functions.updateMember(guild.members.cache.find(m => m.user.id == member.user.id))
                 let ThisEmbed = new Discord.MessageEmbed()
                     .setColor(Number(process.env.BOT_EMBEDCOLOR))

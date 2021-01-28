@@ -19,7 +19,7 @@ module.exports = {
     ],
     cooldown: 5,
 	run: async (bot, message, args) => {
-        var database = editJsonFile('database.json', {autosave: true})
+        let database = admin.firestore();
         let guild = bot.guilds.cache.get(process.env.BOT_PRIMARYGUILD)
         if (args.length !== 1) {
             let ThisEmbed = new Discord.MessageEmbed()
@@ -32,8 +32,8 @@ module.exports = {
             await message.channel.send(ThisEmbed)
             return
         }
-        let product = database.get('products.'+args[0])
-        if (!product) {
+        let product = await database.collection('products').doc(args[0]).get()
+        if (!product.exists) {
             let ThisEmbed = new Discord.MessageEmbed()
                 .setColor(Number(process.env.BOT_EMBEDCOLOR))
                 .setAuthor(message.author.username, message.author.displayAvatarURL())
@@ -80,11 +80,11 @@ module.exports = {
             let index = args.shift()
             let name = args.join(' ')
             let ext = fileMessage.attachments.first().url.split('.')
-            fs.unlinkSync(product.path)
+            fs.unlinkSync(product.data().path)
             request.get(fileMessage.attachments.first().url)
                 .on('error', console.error)
                 .pipe(fs.createWriteStream('product-files/'+index+'.'+ext[ext.length - 1]));
-            database.set('products.'+index, { name: product.name, path: 'product-files/'+index+'.'+ext[ext.length - 1] })
+            await database.collection('products').doc(index).update({ path: 'product-files/'+index+'.'+ext[ext.length - 1] })
             let ThisEmbed = new Discord.MessageEmbed()
                 .setColor(Number(process.env.BOT_EMBEDCOLOR))
                 .setAuthor(message.author.username, message.author.displayAvatarURL())
@@ -94,15 +94,15 @@ module.exports = {
             await m.edit(ThisEmbed)
             var usersSent = 0
             var usersTotal = 0
-            let users = database.get('users')
+            let users = await database.collection('users').get()
             async function asyncForEach(array, callback) {
                 for (let index = 0; index < array.length; index++) {
                     await callback(array[index], index, array);
                 }
             }
-            await asyncForEach(Object.values(users), async (user) => {
-                if (user.products.find(r => r == index) && user.verify.status == 'complete') {
-                    let member = guild.members.cache.find(m => m.user.id == user.verify.value)
+            await asyncForEach(users.docs, async (user) => {
+                if (user.data().products.find(r => r == index) && user.data().verify.status == 'complete') {
+                    let member = guild.members.cache.find(m => m.user.id == user.data().verify.value)
                     if (member) {
                         let ThisEmbed = new Discord.MessageEmbed()
                             .setColor(Number(process.env.BOT_EMBEDCOLOR))
@@ -122,18 +122,18 @@ module.exports = {
                 .setAuthor(message.author.username, message.author.displayAvatarURL())
                 .setTitle('**Update File Information**')
                 .addField('Status', ':white_check_mark: **Complete!** `'+usersSent+'/'+usersTotal+'` received.', true)
-                .addField('Product Information', 'ID: \`'+index+'\`\nName: \`'+product.name+'\`\nFile: \`'+index+'.'+ext[ext.length - 1]+'\`', true)
+                .addField('Product Information', 'ID: \`'+index+'\`\nName: \`'+product.data().name+'\`\nFile: \`'+index+'.'+ext[ext.length - 1]+'\`', true)
                 .setThumbnail(guild.iconURL())
             await m.edit(NextEmbed)
         } else {
             let index = args.shift()
             let name = args.join(' ')
             let ext = message.attachments.first().url.split('.')
-            fs.unlinkSync(product.path)
+            fs.unlinkSync(product.data().path)
             request.get(message.attachments.first().url)
                 .on('error', console.error)
                 .pipe(fs.createWriteStream('product-files/'+index+'.'+ext[ext.length - 1]));
-            database.set('products.'+index, { name: product.name, path: 'product-files/'+index+'.'+ext[ext.length - 1] })
+            await database.collection('products').doc(index).update({ path: 'product-files/'+index+'.'+ext[ext.length - 1] })
             let ThisEmbed = new Discord.MessageEmbed()
                 .setColor(Number(process.env.BOT_EMBEDCOLOR))
                 .setAuthor(message.author.username, message.author.displayAvatarURL())
@@ -143,15 +143,15 @@ module.exports = {
             let response = await message.channel.send(ThisEmbed)
             var usersSent = 0
             var usersTotal = 0
-            let users = database.get('users')
+            let users = await database.collection('users').get()
             async function asyncForEach(array, callback) {
                 for (let index = 0; index < array.length; index++) {
                     await callback(array[index], index, array);
                 }
             }
-            await asyncForEach(Object.values(users), async (user) => {
-                if (user.products.find(r => r == index) && user.verify.status == 'complete') {
-                    let member = guild.members.cache.find(m => m.user.id == user.verify.value)
+            await asyncForEach(users.docs, async (user) => {
+                if (user.data().products.find(r => r == index) && user.data().verify.status == 'complete') {
+                    let member = guild.members.cache.find(m => m.user.id == user.data().verify.value)
                     if (member) {
                         let ThisEmbed = new Discord.MessageEmbed()
                             .setColor(Number(process.env.BOT_EMBEDCOLOR))
@@ -171,7 +171,7 @@ module.exports = {
                 .setAuthor(message.author.username, message.author.displayAvatarURL())
                 .setTitle('**Update File Information**')
                 .addField('Status', ':white_check_mark: **Complete!** `'+usersSent+'/'+usersTotal+'` received.', true)
-                .addField('Product Information', 'ID: \`'+index+'\`\nName: \`'+product.name+'\`\nFile: \`'+index+'.'+ext[ext.length - 1]+'\`', true)
+                .addField('Product Information', 'ID: \`'+index+'\`\nName: \`'+product.data().name+'\`\nFile: \`'+index+'.'+ext[ext.length - 1]+'\`', true)
                 .setThumbnail(guild.iconURL())
             await response.edit(NextEmbed)
         }

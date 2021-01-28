@@ -18,7 +18,7 @@ module.exports = {
     ],
     cooldown: 5,
 	run: async (bot, message, args) => {
-        var database = editJsonFile('database.json', {autosave: true})
+        let database = admin.firestore();
         let guild = bot.guilds.cache.get(process.env.BOT_PRIMARYGUILD)
         if (args.length !== 1) {
             let ThisEmbed = new Discord.MessageEmbed()
@@ -31,7 +31,7 @@ module.exports = {
             await message.channel.send(ThisEmbed)
             return
         }
-        if (!database.get('products.'+args[0])) {
+        if (!(await database.collection('products').doc(args[0]).get()).exists) {
             let ThisEmbed = new Discord.MessageEmbed()
                 .setColor(Number(process.env.BOT_EMBEDCOLOR))
                 .setAuthor(message.author.username, message.author.displayAvatarURL())
@@ -42,20 +42,20 @@ module.exports = {
             await message.channel.send(ThisEmbed)
             return
         }
-        let { path } = database.get('products.'+args[0])
-        fs.unlinkSync(path)
-        let users = database.get('users')
-        if (users) {
-            let formatted = Object.entries(users)
-            let me = formatted.filter(v => v[1].products.find(r => r == args[0]))
+        let { path } = (await database.collection('products').doc(args[0]).get()).data()
+        let users = await database.collection('users').get()
+        if (!users.empty) {
+            let formatted = users.docs
+            let me = formatted.filter(v => v.data().products.find(r => r == args[0]))
             me.forEach(async (auser) => {
                 let index = auser[0]
                 let user = auser[1]
                 user.products.splice(user.products.indexOf(args[0]), 1)
-                database.set('users.'+index, user)
+                await database.collection('users').doc(index).update({products: user.products})
             })
         }
-        database.unset('products.'+args[0])
+        await database.collection('products').doc(args[0]).delete()
+        fs.unlinkSync(path)
         let ThisEmbed = new Discord.MessageEmbed()
             .setColor(Number(process.env.BOT_EMBEDCOLOR))
             .setAuthor(message.author.username, message.author.displayAvatarURL())

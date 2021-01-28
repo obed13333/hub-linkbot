@@ -15,8 +15,8 @@ module.exports = {
     ],
     cooldown: 5,
 	run: async (bot, message, args) => {
-        var database = editJsonFile('database.json', {autosave: true})
-        let users = database.get('users')
+        let database = admin.firestore();
+        let users = await database.collection('users').get()
         let guild = bot.guilds.cache.get(process.env.BOT_PRIMARYGUILD)
         async function getMember(message, info, guild) {
             await guild.members.fetch()
@@ -35,17 +35,18 @@ module.exports = {
             return guild.members.cache.find(u => u.user.id == message.author.id);
         }
         let member = await getMember(message, args.join(' '), guild)
-        if (users) {
-            let entries = Object.entries(users)
-            var set = entries.find(u => {if (u[1].verify.status == 'complete') {return u[0] == args.join(' ')} else {return false}})
-            if (!set) set = entries.find(u => {if (u[1].verify.status == 'complete') {return u[1].robloxId == args.join(' ')} else {return false}})
-            if (!set) set = entries.find(u => {if (u[1].verify.status == 'complete') {return u[1].verify.value == member.user.id} else {return false}})
+        if (!users.empty) {
+            let entries = users.docs
+            var set = entries.find(u => {if (u.data().verify.status == 'complete') {return u.id == args.join(' ')} else {return false}})
+            if (!set) set = entries.find(u => {if (u.data().verify.status == 'complete') {return u.data().robloxId == args.join(' ')} else {return false}})
+            if (!set) set = entries.find(u => {if (u.data().verify.status == 'complete') {return u.data().verify.value == member.user.id} else {return false}})
             if (set) {
                 await bot.functions.updateMember(message.member)
-                let index = set[0]
-                let value = set[1]
+                let index = set.id
+                let value = set.data()
                 let finalProduct = [];
-                value.products.forEach((v)=>{let product=database.get('products.'+v);if(product)finalProduct.push(`**${product.name}** \`${v}\``)})
+                let products = await database.collection('products').get()
+                value.products.forEach((v)=>{let product=products.docs.find(p => p.id == v);if(product)finalProduct.push(`**${product.data().name}** \`${v}\``)})
                 let ThisEmbed = new Discord.MessageEmbed()
                     .setColor(Number(process.env.BOT_EMBEDCOLOR))
                     .setAuthor(message.author.username, message.author.displayAvatarURL())

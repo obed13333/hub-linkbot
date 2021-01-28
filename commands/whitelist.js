@@ -20,8 +20,8 @@ module.exports = {
     ],
     cooldown: 20,
 	run: async (bot, message, args) => {
-        var database = editJsonFile('database.json', {autosave: true})
-        let users = database.get('users')
+        let database = admin.firestore();
+        let users = await database.collection('users').get()
         let guild = bot.guilds.cache.get(process.env.BOT_PRIMARYGUILD)
         if (args.length !== 2) {
             let ThisEmbed = new Discord.MessageEmbed()
@@ -34,7 +34,7 @@ module.exports = {
             await message.channel.send(ThisEmbed)
             return
         }
-        if (!database.get('products.'+args[1])) {
+        if (!(await database.collection('products').doc(args[1]).get()).exists) {
             let ThisEmbed = new Discord.MessageEmbed()
                 .setColor(Number(process.env.BOT_EMBEDCOLOR))
                 .setAuthor(message.author.username, message.author.displayAvatarURL())
@@ -62,12 +62,13 @@ module.exports = {
             return
         }
         let member = await getMember(message, args[0], guild)
-        if (users) {
-            let entries = Object.entries(users)
-            var set = entries.find(u => {if (u[1].verify.status == 'complete') {return u[0] == args[0]} else {return false}})
-            if (!set) set = entries.find(u => {if (u[1].verify.status == 'complete') {return u[1].robloxId == args[0]} else {return false}})
-            if (!set && member) set = entries.find(u => {if (u[1].verify.status == 'complete') {return u[1].verify.value == member.user.id} else {return false}})
+        if (!users.empty) {
+            let entries = users.docs
+            var set = entries.find(u => {if (u.data().verify.status == 'complete') {return u.id == args[0]} else {return false}})
+            if (!set) set = entries.find(u => {if (u.data().verify.status == 'complete') {return u.data().robloxId == args[0]} else {return false}})
+            if (!set && member) set = entries.find(u => {if (u.data().verify.status == 'complete') {return u.data().verify.value == member.user.id} else {return false}})
             if (set) {
+                member = guild.members.cache.find(m => m.user.id == set.data().verify.value)
                 let sent = await bot.functions.giveProduct(guild.members.cache.find(m => m.user.id == member.user.id), args[1])
                 let ThisEmbed = new Discord.MessageEmbed()
                     .setColor(Number(process.env.BOT_EMBEDCOLOR))
@@ -75,7 +76,7 @@ module.exports = {
                     .setTitle('**Whitelist Information**')
                     .addField('Status', ':white_check_mark: **Complete!**', true)
                     .addField('Gave Product', args[1], true)
-                    .addField('To User', set[1].robloxUsername, true)
+                    .addField('To User', set.data().robloxUsername, true)
                     .addField('DM Success', sent, true)
                     .setThumbnail(guild.iconURL())
                 await message.channel.send(ThisEmbed)

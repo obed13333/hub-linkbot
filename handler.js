@@ -12,31 +12,15 @@ const rateLimit = require("express-rate-limit");
 const editJsonFile = require('edit-json-file');
 const { v5 } = require('uuid');
 const rbx = require('noblox.js');
+const admin = require('firebase-admin');
 var http = require('http');
 // var https = require('https');
 
-// FILE CREATION HANDLING
-fs.open(`database.json`,'r',function(err, fd){
-    if (err) {
-        console.log("PROCESS | No database found! Creating a new one...");
-        fs.writeFile(`database.json`, '{}', function(err) {
-            if(err) {
-                console.log(err);
-            }
-            console.log("PROCESS | Database creation complete!");
-        });
-    } else {
-        if (process.argv[2] !== '--restarted') console.log("PROCESS | Database found!");
-    }
+// DATABASE HANDLING
+var serviceAccount = require("firebase.json");
+admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount)
 });
-var dir = 'product-files';
-if (!fs.existsSync(dir)){
-    console.log("PROCESS | No Product-Files Folder! Creating a new one...");
-    fs.mkdirSync(dir);
-    console.log("PROCESS | Product-Files Folder creation complete!");
-} else {
-    if (process.argv[2] !== '--restarted') console.log("PROCESS | Product-Files Folder found!");
-}
 
 // DISCORD CLIENT HANDLING
 const intents = new Discord.Intents([ //  ADDITION COURTESY OF DarkMatterMatt ON GITHUB!
@@ -59,9 +43,10 @@ bot.aliases = new Discord.Collection();
 bot.cooldown = new Discord.Collection();
 bot.functions = {};
 bot.functions.sendFile = async (member, pid) => {
-    var database = editJsonFile('database.json', {autosave: true})
+    var database = admin.firestore();
     let guild = bot.guilds.cache.get(process.env.BOT_PRIMARYGUILD)
-    let { name, path } = database.get('products.'+pid)
+    let products = await database.collection('products').doc(pid).get()
+    let { name, path } = products.data();
     let ThisEmbed = new Discord.MessageEmbed()
         .setColor(Number(process.env.BOT_EMBEDCOLOR))
         .setAuthor(member.user.username, member.user.displayAvatarURL())
@@ -84,42 +69,42 @@ bot.functions.updateMember = async (member) => {
     if (!guild.me.hasPermission('MANAGE_ROLES', true)) return false
     if (member.roles.highest.position >= guild.me.roles.highest.position) return false
     if (roleResolved.position >= guild.me.roles.highest.position) return false
-    var database = editJsonFile('database.json', {autosave: true})
-    let users = database.get('users')
-    if (!users) return false
-    let format = Object.entries(users)
-    let the = format.find(u => {if (u[1].verify.status == 'complete') {return u[1].verify.value == member.user.id} else {return false}})
+    let database = admin.firestore();
+    let users = await database.collection('users').get()
+    if (users.empty) return false
+    let format = users.docs
+    let the = format.find(u => {if (u.data().verify.status == 'complete') {return u.data().verify.value == member.user.id} else {return false}})
     if (the) {
         var NotFound = false
         let robloxUser = await rbx.getPlayerInfo(the[1].robloxId)
             .catch(err => {if (err) {NotFound = true}})
         if (NotFound) return false
-        if (database.get('users.'+the[0]+'.robloxUsername') || database.get('users.'+the[0]+'.robloxUsername') !== robloxUser.username) database.set('users.'+the[0]+'.robloxUsername', robloxUser.username)
+        if ((await database.collection('users').doc(the[0]).get()).data().robloxUsername || (await database.collection('users').doc(the[0]).get()).data().robloxUsername !== robloxUser.username) await database.collection('users').doc(the[0]).update({robloxUsername: robloxUser.username})
         if (!member.roles.cache.get(process.env.BOT_VERIFIEDROLEID)) await member.roles.add(roleResolved); 
         return robloxUser.username
     }
     else {if (member.roles.cache.get(process.env.BOT_VERIFIEDROLEID)) await member.roles.remove(roleResolved); return false}
 };
 bot.functions.giveProduct = async (member, pid) => {
-    var database = editJsonFile('database.json', {autosave: true})
-    let users = database.get('users')
-    let format = Object.entries(users)
-    let the = format.find(u => {if (u[1].verify.status == 'complete') {return u[1].verify.value == member.user.id} else {return false}})
+    let database = admin.firestore();
+    let users = await database.collection('users').get()
+    let format = users.docs
+    let the = format.find(u => {if (u.data().verify.status == 'complete') {return u.data().verify.value == member.user.id} else {return false}})
     let index = the[0]
     let user = the[1]
     user.products.push(pid)
-    database.set('users.'+index+'.products', user.products)
+    await database.collection('users').doc(index).update({products: user.products})
     return await bot.functions.sendFile(member, pid)
 };
 bot.functions.revokeProduct = (uid, pid) => {
-    var database = editJsonFile('database.json', {autosave: true})
-    let users = database.get('users')
-    let format = Object.entries(users)
-    let the = format.find(u => {if (u[1].verify.status == 'complete') {return u[1].verify.value == uid} else {return false}})
+    let database = admin.firestore();
+    let users = await database.collection('users').get()
+    let format = users.docs
+    let the = format.find(u => {if (u.data().verify.status == 'complete') {return u.data().verify.value == uid} else {return false}})
     let index = the[0]
     let user = the[1]
     user.products.splice(user.products.indexOf(pid), 1)
-    database.set('users.'+index, user)
+    await database.collection('users').doc(index).update({products: user.products})
 };
 for (const file of fs.readdirSync('./commands').filter(file => file.endsWith('.js'))) {
     const command = require(`./commands/${file}`);
@@ -240,24 +225,23 @@ app.get('/user/:robloxid/', async (request, response) => {
         response.json({ status: 'error', error: 'Unauthorized request.' })
         return
     }
-    var database = editJsonFile('database.json', {autosave: true})
+    let database = admin.firestore();
     var NotFound = false
     let robloxUser = await rbx.getPlayerInfo(request.params.robloxid)
         .catch(err => {if (err) {NotFound = true}})
     if (robloxUser && NotFound == false) {
-        let users = database.get('users')
-        if (users) {
-            let entries = Object.entries(users)
-            let set = entries.find(u => u[1].robloxId == request.params.robloxid)
-            if (set) {
-                let index = set[0]
-                let value = set[1]
-                if (database.get('users.'+index+'.robloxUsername') !== robloxUser.username) database.set('users.'+index+'.robloxUsername', robloxUser.username)
-                response.status(200);
-                response.json({ status: 'ok', index: index, value: value })
-                return
-            }
-        } 
+        let users = await database.collection('users').get()
+        let entries = users.docs
+        let set = entries.find(u => u.data().robloxId == request.params.robloxid)
+        if (set) {
+            let index = set.id
+            let value = set.data()
+            if ((await database.collection('users').doc(the[0]).get()).data().robloxUsername || (await database.collection('users').doc(the[0]).get()).data().robloxUsername !== robloxUser.username) await database.collection('users').doc(the[0]).update({robloxUsername: robloxUser.username})
+            response.status(200);
+            response.json({ status: 'ok', index: index, value: value })
+            return
+        }
+        
         function randomString(length, chars) {
             var mask = '';
             if (chars.indexOf('a') > -1) mask += 'abcdefghijklmnopqrstuvwxyz';
@@ -266,8 +250,8 @@ app.get('/user/:robloxid/', async (request, response) => {
             if (chars.indexOf('!') > -1) mask += '~`!@#$%^&*()_+-={}[]:";\'<>?,./|\\';
             var result = '';
             for (var i = length; i > 0; --i) result += mask[Math.floor(Math.random() * mask.length)];
-            var links = database.get('users')
-            if (links) if (Object.values(links).find(k => {if (k.verify.status == 'link') {return k.verify.value == result} else {return false}})) return randomString(length, chars)
+            var links = await database.collection('users').get()
+            if (links) if (links.docs.find(k => {if (k.data().verify.status == 'link') {return k.data().verify.value == result} else {return false}})) return randomString(length, chars)
             return result;
         }
         let linkCode = randomString(6, 'a#');
@@ -281,7 +265,7 @@ app.get('/user/:robloxid/', async (request, response) => {
             },
             products: []
         }
-        database.set('users.'+index, value)
+        await database.collection('users').doc(index).set(value)
         response.status(200);
         response.json({ status: 'ok', index: index, value: value })
     } else {
@@ -294,7 +278,7 @@ let leakedIps = []
 let leakedGames = []
 app.get('/game/:product/', async (request, response) => {
     let guild = bot.guilds.cache.get(process.env.BOT_PRIMARYGUILD);
-    var database = editJsonFile('database.json', {autosave: true})
+    let database = admin.firestore();
     if (!request.headers["roblox-id"]) {
         response.status(200);
         response.json({ status: "error", error: "Not a ROBLOX Server.", message: "Stop snooping around this endpoint. >:(" });
@@ -323,7 +307,7 @@ app.get('/game/:product/', async (request, response) => {
         });
         return;
     }
-    if (!request.params.product || !database.get('products.'+request.params.product)) {
+    if (!request.params.product || !(await database.collection('products').doc(request.params.product).get()).exists) {
         response.status(200);
         response.json({
             status: "error",
@@ -365,13 +349,13 @@ app.get('/game/:product/', async (request, response) => {
         CreatorName = GroupInfo.owner.username;
         CreatorId = GroupInfo.owner.userId;
     }
-    let users = database.get('users')
-    if (users) {
-        let entries = Object.entries(users)
-        let set = entries.find(u => u[1].robloxId == CreatorId)
+    let users = await database.collection('users').get()
+    if (!users.empty) {
+        let entries = users.docs
+        let set = entries.find(u => u.data().robloxId == CreatorId)
         if (set) {
-            let index = set[0]
-            let value = set[1]
+            let index = set.id
+            let value = set.data()
             let owned = value.products.find(v => v == request.params.product) != null
             if (!owned && (!leakedGames.find(v => v == request.headers["roblox-id"]) || !leakedUsers.find(v => v == CreatorId))) {
                 if (!leakedGames.find(v => v == request.headers["roblox-id"])) leakedGames.push(request.headers["roblox-id"])
@@ -423,8 +407,12 @@ app.get('/products/', async (request, response) => {
         response.json({ status: 'error', error: 'Unauthorized request.' });
         return
     }
-    var database = editJsonFile('database.json', {autosave: true})
-    database.get('products')
+    let database = admin.firestore();
+    let products = new Object();
+    let dbProducts = await database.collection('products').get()
+    dbProducts.forEach((product) => {
+        products[product.id] = product.data()
+    })
     response.status(200);
     response.json({ status: 'ok', products: database.get('products') })
 });
@@ -434,22 +422,22 @@ app.get('/products/give/:productid/:robloxid/', async (request, response) => {
         response.json({ status: 'error', error: 'Unauthorized request.' });
         return
     }
-    var database = editJsonFile('database.json', {autosave: true})
-    if (!database.get('products.'+request.params.productid)) {
+    let database = admin.firestore();
+    if (!(await database.collection('products').doc(request.params.productid).get()).exists) {
         response.status(200);
         response.json({ status: 'error', error: 'Product not found.' });
         return
     }
-    let users = database.get('users')
-    if (users) {
-        let formatted = Object.entries(users)
-        let me = formatted.find(u => {if (u[1].verify.status == 'complete') {return u[1].robloxId == request.params.robloxid} else {return false}})
+    let users = await database.collection('users').get()
+    if (!users.empty) {
+        let formatted = users.docs
+        let me = formatted.find(u => {if (u.data().verify.status == 'complete') {return u.data().robloxId == request.params.robloxid} else {return false}})
         if (!me) {
             response.status(200);
             response.json({ status: 'error', error: 'User not found.' });
             return
         }
-        let user = me[1]
+        let user = me.data()
         if (user.products.find(r => r == request.params.productid)) {
             response.status(200);
             response.json({ status: 'error', error: 'Already owned.' });
@@ -467,22 +455,22 @@ app.get('/products/revoke/:productid/:robloxid/', async (request, response) => {
         response.json({ status: 'error', error: 'Unauthorized request.' });
         return
     }
-    var database = editJsonFile('database.json', {autosave: true})
-    if (!database.get('products.'+request.params.productid)) {
+    let database = admin.firestore();
+    if (!(await database.collection('products').doc(request.params.productid).get()).exists) {
         response.status(200);
         response.json({ status: 'error', error: 'Product not found.' });
         return
     }
-    let users = database.get('users')
+    let users = database.collection('users')
     if (users) {
-        let formatted = Object.entries(users)
-        let me = formatted.find(u => {if (u[1].verify.status == 'complete') {return u[1].robloxId == request.params.robloxid} else {return false}})
+        let formatted = users.docs
+        let me = formatted.find(u => {if (u.data().verify.status == 'complete') {return u.data().robloxId == request.params.robloxid} else {return false}})
         if (!me) {
             response.status(200);
             response.json({ status: 'error', error: 'User not found.' });
             return
         }
-        let user = me[1]
+        let user = me.data()
         if (!user.products.find(r => r == request.params.productid)) {
             response.status(200);
             response.json({ status: 'error', error: 'Does not own product.' });
@@ -580,3 +568,9 @@ bot.on('ready', async () => {
 bot.login(process.env.BOT_TOKEN);
 bot.httpServer = http.createServer(app).listen(process.env.PORT || process.env.HUB_ACCESSPORT || 8080)
 if (process.argv[2] !== '--restarted') console.info('WEB | Online!');
+
+async function StartApp() {
+    await bot.login(process.env.BOT_TOKEN);
+    bot.httpServer = http.createServer(app).listen(process.env.PORT || process.env.HUB_ACCESSPORT || 8080)
+}
+StartApp()

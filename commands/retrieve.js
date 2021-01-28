@@ -16,7 +16,7 @@ module.exports = {
     ],
     cooldown: 5,
 	run: async (bot, message, args) => {
-        var database = editJsonFile('database.json', {autosave: true})
+        let database = admin.firestore();
         let guild = bot.guilds.cache.get(process.env.BOT_PRIMARYGUILD)
         if (args.length !== 1) {
             let ThisEmbed = new Discord.MessageEmbed()
@@ -29,7 +29,7 @@ module.exports = {
             await message.channel.send(ThisEmbed)
             return
         }
-        if (!database.get('products.'+args[0])) {
+        if (!(await database.collection('products').doc(args[0]).get()).exists) {
             let ThisEmbed = new Discord.MessageEmbed()
                 .setColor(Number(process.env.BOT_EMBEDCOLOR))
                 .setAuthor(message.author.username, message.author.displayAvatarURL())
@@ -40,8 +40,8 @@ module.exports = {
             await message.channel.send(ThisEmbed)
             return
         }
-        let users = database.get('users')
-        if (!users) {
+        let users = await database.collection('users').get()
+        if (users.empty) {
             let ThisEmbed = new Discord.MessageEmbed()
                 .setColor(Number(process.env.BOT_EMBEDCOLOR))
                 .setAuthor(message.author.username, message.author.displayAvatarURL())
@@ -52,9 +52,9 @@ module.exports = {
             await message.channel.send(ThisEmbed)
             return
         }
-        let formatted = Object.values(users)
-        let me = formatted.find(v => {if (v.verify.status == "complete") {return v.verify.value == message.author.id} else {return false}})
-        if (!me || !me.products.find(p => p == args[0])) {
+        let formatted = users.docs
+        let me = formatted.find(v => {if (v.data().verify.status == "complete") {return v.data().verify.value == message.author.id} else {return false}})
+        if (!me || !me.data().products.find(p => p == args[0])) {
             let ThisEmbed = new Discord.MessageEmbed()
                 .setColor(Number(process.env.BOT_EMBEDCOLOR))
                 .setAuthor(message.author.username, message.author.displayAvatarURL())

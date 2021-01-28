@@ -23,8 +23,8 @@ module.exports = {
     ],
     cooldown: 20,
 	run: async (bot, message, args) => {
-        var database = editJsonFile('database.json', {autosave: true})
-        let users = database.get('users')
+        let database = admin.firestore();
+        let users = await database.collection('users').get()
         let guild = bot.guilds.cache.get(process.env.BOT_PRIMARYGUILD)
         if (args.length !== 3) {
             let ThisEmbed = new Discord.MessageEmbed()
@@ -37,7 +37,7 @@ module.exports = {
             await message.channel.send(ThisEmbed)
             return
         }
-        if (!database.get('products.'+args[2])) {
+        if (!(await database.collection('products').doc(args[2]).get()).exists) {
             let ThisEmbed = new Discord.MessageEmbed()
                 .setColor(Number(process.env.BOT_EMBEDCOLOR))
                 .setAuthor(message.author.username, message.author.displayAvatarURL())
@@ -66,16 +66,16 @@ module.exports = {
         }
         let frommember = await getMember(message, args[0], guild)
         let tomember = await getMember(message, args[1], guild)
-        if (users) {
-            let entries = Object.entries(users)
-            var set = entries.find(u => {if (u[1].verify.status == 'complete') {return u[0] == args[0]} else {return false}})
-            if (!set) set = entries.find(u => {if (u[1].verify.status == 'complete') {return u[1].robloxId == args[0]} else {return false}})
-            if (!set && frommember) set = entries.find(u => {if (u[1].verify.status == 'complete') {return u[1].verify.value == frommember.user.id} else {return false}})
-            var toset = entries.find(u => {if (u[1].verify.status == 'complete') {return u[0] == args[1]} else {return false}})
-            if (!toset) toset = entries.find(u => {if (u[1].verify.status == 'complete') {return u[1].robloxId == args[1]} else {return false}})
-            if (!toset && tomember) toset = entries.find(u => {if (u[1].verify.status == 'complete') {return u[1].verify.value == tomember.user.id} else {return false}})
+        if (!users.empty) {
+            let entries = users.docs
+            var set = entries.find(u => {if (u.data().verify.status == 'complete') {return u.id == args[0]} else {return false}})
+            if (!set) set = entries.find(u => {if (u.data().verify.status == 'complete') {return u.data().robloxId == args[0]} else {return false}})
+            if (!set && frommember) set = entries.find(u => {if (u.data().verify.status == 'complete') {return u.data().verify.value == frommember.user.id} else {return false}})
+            var toset = entries.find(u => {if (u.data().verify.status == 'complete') {return u.id == args[1]} else {return false}})
+            if (!toset) toset = entries.find(u => {if (u.data().verify.status == 'complete') {return u.data().robloxId == args[1]} else {return false}})
+            if (!toset && tomember) toset = entries.find(u => {if (u.data().verify.status == 'complete') {return u.data().verify.value == tomember.user.id} else {return false}})
             if (set && toset) {
-                if (set.products.find(r => r == args[2]) && !toset.products.find(r => r == args[2])) {
+                if (set.data().products.find(r => r == args[2]) && !toset.data().products.find(r => r == args[2])) {
                     await bot.functions.revokeProduct(guild.members.cache.find(m => m.user.id == frommember.user.id), args[2])
                     let sent = await bot.functions.giveProduct(guild.members.cache.find(m => m.user.id == tomember.user.id), args[2])
                     let ThisEmbed = new Discord.MessageEmbed()
@@ -101,7 +101,7 @@ module.exports = {
                     await message.channel.send(ThisEmbed)
                     return
                 }
-            } else if (!toset) {
+            } else if (!toset.exists) {
                 let ThisEmbed = new Discord.MessageEmbed()
                     .setColor(Number(process.env.BOT_EMBEDCOLOR))
                     .setAuthor(message.author.username, message.author.displayAvatarURL())
@@ -111,7 +111,7 @@ module.exports = {
                     .setThumbnail(guild.iconURL())
                 await message.channel.send(ThisEmbed)
                 return
-            } else if (!fromset) {
+            } else if (!set.exists) {
                 let ThisEmbed = new Discord.MessageEmbed()
                     .setColor(Number(process.env.BOT_EMBEDCOLOR))
                     .setAuthor(message.author.username, message.author.displayAvatarURL())

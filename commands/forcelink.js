@@ -22,7 +22,7 @@ module.exports = {
     ],
     cooldown: 2,
 	run: async (bot, message, args) => {
-        var database = editJsonFile('database.json', {autosave: true})
+        let database = admin.firestore();
         let guild = bot.guilds.cache.get(process.env.BOT_PRIMARYGUILD)
         async function getMember(message, info, guild) {
             await guild.members.fetch()
@@ -45,14 +45,14 @@ module.exports = {
         let robloxUser = await rbx.getPlayerInfo(args[1])
             .catch(err => {if (err) {NotFound = true}})
         if (robloxUser && NotFound == false && member) {
-            let users = database.get('users')
-            if (users) {
-                let entries = Object.entries(users)
-                let set = entries.find(u => u[1].robloxId == args[1])
+            let users = await database.collection('users').get()
+            if (!users.empty) {
+                let entries = users.docs
+                let set = entries.find(u => u.data().robloxId == args[1])
                 if (set) {
-                    let index = set[0]
-                    let value = set[1]
-                    if (database.get('users.'+index+'.robloxUsername') !== robloxUser.username) database.set('users.'+index+'.robloxUsername', robloxUser.username)
+                    let index = set.id
+                    let value = set.data()
+                    if ((await database.collection('users').doc(the[0]).get()).data().robloxUsername || (await database.collection('users').doc(the[0]).get()).data().robloxUsername !== robloxUser.username) await database.collection('users').doc(the[0]).update({robloxUsername: robloxUser.username})
                     if (value.verify.status == 'link') {
                         value.verify.value = member.user.id
                         value.verify.status = 'complete'
@@ -74,7 +74,7 @@ module.exports = {
                             .setThumbnail(guild.iconURL())
                         return await message.channel.send(ThisEmbed)
                     }
-                    database.set('users.'+index, value)
+                    await database.collection('users').doc(index).set(value)
                     return
                 }
             } 
@@ -88,7 +88,7 @@ module.exports = {
                 },
                 products: []
             }
-            database.set('users.'+index, value)
+            await database.collection('users').doc(index).set(value)
             let ThisEmbed = new Discord.MessageEmbed()
                 .setColor(Number(process.env.BOT_EMBEDCOLOR))
                 .setAuthor(message.author.username, message.author.displayAvatarURL())

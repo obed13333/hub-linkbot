@@ -52,6 +52,8 @@ To install this Discord Bot, you will need to do the following:
         - `HUB_CHANGENICKNAME` Set this to true if you want the bot to change the nickname on account link, and false if you do not.
         - `HUB_APIKEY` Set this to a [random alphanumeric string](https://onlinerandomtools.com/generate-random-string?length=32&count=1&predefined-charset=alphamixnum&custom-charset=). This will be used for system security. Even if your IP and Port are leaked, you need to have this changable API key in order to back you up in order to prevent unfixable security issues.
         - `UUID_NAMESPACE` Set this to the UUID generated [here](https://www.uuidgenerator.net/). This will be used to encrypt your user's database index UUIDs and make them truly randomized.
+6. Create a Cloud Firestore application through [Firebase](https://console.firebase.google.com/).
+7. Grab your Service Account file from the **Users and Permissions** section, and import it in the main directory as `firebase.json`.
 
 ## Running the Bot
 To initialize the bot, run the following commands in the cloned directory to set up the bot:
