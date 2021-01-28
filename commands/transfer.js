@@ -84,8 +84,8 @@ module.exports = {
                         .setTitle('**Whitelist Information**')
                         .addField('Status', ':white_check_mark: **Complete!**', true)
                         .addField('Gave Product', args[2], true)
-                        .addField('From User', set[1].robloxUsername, true)
-                        .addField('To User', toset[1].robloxUsername, true)
+                        .addField('From User', set.data().robloxUsername, true)
+                        .addField('To User', toset.data().robloxUsername, true)
                         .addField('DM Success', sent, true)
                         .setThumbnail(guild.iconURL())
                     await message.channel.send(ThisEmbed)
@@ -101,7 +101,7 @@ module.exports = {
                     await message.channel.send(ThisEmbed)
                     return
                 }
-            } else if (!toset.exists) {
+            } else if (!toset) {
                 let ThisEmbed = new Discord.MessageEmbed()
                     .setColor(Number(process.env.BOT_EMBEDCOLOR))
                     .setAuthor(message.author.username, message.author.displayAvatarURL())
@@ -111,7 +111,7 @@ module.exports = {
                     .setThumbnail(guild.iconURL())
                 await message.channel.send(ThisEmbed)
                 return
-            } else if (!set.exists) {
+            } else if (!set) {
                 let ThisEmbed = new Discord.MessageEmbed()
                     .setColor(Number(process.env.BOT_EMBEDCOLOR))
                     .setAuthor(message.author.username, message.author.displayAvatarURL())

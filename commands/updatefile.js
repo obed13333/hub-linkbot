@@ -157,7 +157,7 @@ module.exports = {
                             .setColor(Number(process.env.BOT_EMBEDCOLOR))
                             .setAuthor(message.author.username, message.author.displayAvatarURL())
                             .setTitle('**Product Updated**')
-                            .setDescription(`The following product is a new update of: **${product.name}**`)
+                            .setDescription(`The following product is a new update of: **${index}**`)
                             .setThumbnail(guild.iconURL())
                         usersTotal++
                         await member.send(ThisEmbed).catch(err => {})
