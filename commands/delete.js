@@ -48,8 +48,8 @@ module.exports = {
             let formatted = users.docs
             let me = formatted.filter(v => v.data().products.find(r => r == args[0]))
             me.forEach(async (auser) => {
-                let index = auser[0]
-                let user = auser[1]
+                let index = auser.id
+                let user = auser.data()
                 user.products.splice(user.products.indexOf(args[0]), 1)
                 await database.collection('users').doc(index).update({products: user.products})
             })

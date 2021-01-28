@@ -18,45 +18,20 @@ module.exports = {
             .addField('Restart Status', ':hourglass_flowing_sand: **Processing...**', true)
             .setThumbnail(message.guild.iconURL())
         let m = await message.channel.send(Loading)
-        fs.open(`restart.json`,'r',function(err, fd){
-            if (err) {
-                fs.writeFile(`restart.json`, '{}', function(err) {
-                    if(err) {
-                        console.log(err);
-                    }
-                    var restartData = editJsonFile(`restart.json`, {
-                        autosave: true
-                    });
-                    restartData.set('initialized', Date.now())
-                    restartData.set('message', m.id)
-                    restartData.set('messageChannel', m.channel.id)
-                    restartData.set('author', {
-                        displayAvatarURL: message.author.displayAvatarURL(),
-                        username: message.author.username,
-                        guildIcon: message.guild.iconURL()
-                    })
-                    bot.destroy();
-                    bot.httpServer.close();
-                    console.log('PROCESS | Restarting...')
-                    process.exit(2)
-                });
-            } else {
-                var restartData = editJsonFile(`restart.json`, {
-                    autosave: true
-                });
-                restartData.set('initialized', Date.now())
-                restartData.set('message', m.id)
-                restartData.set('messageChannel', m.channel.id)
-                restartData.set('author', {
-                    displayAvatarURL: message.author.displayAvatarURL,
-                    username: message.author.username,
-                    guildIcon: message.guild.iconURL()
-                })
-                bot.destroy();
-                bot.httpServer.close();
-                console.log('PROCESS | Restarting...')
-                process.exit(2)
+        var restartData = {
+            initialized: Date.now(),
+            message: m.id,
+            messageChannel: m.channel.id,
+            author: {
+                displayAvatarURL: message.author.displayAvatarURL(),
+                username: message.author.username,
+                guildIcon: message.guild.iconURL()
             }
-        });
-	}
+        }
+        fs.writeFileSync(`restart.json`, JSON.stringify(restartData))
+        bot.destroy();
+        bot.httpServer.close();
+        console.log('PROCESS | Restarting...')
+        process.exit(2)
+    }
 };
