@@ -3,7 +3,6 @@
 </p>
 
 # Hub Whitelist Bot (jdwoj5)
-This whitelisting bot is made for ROBLOX Tech Groups to use in their Discord Servers. It will help deliver products through web requests and store data of users. Please note that while this works, it may not be so appealing to the eye as the Zing Tech one is, but it works nevertheless and has more features.
 
 ***I AM ONLY OPEN TO QUESTIONS ABOUT BUG FIXES IN THE GITHUB ISSUES PAGE. PLEASE DO NOT FRIEND ME ON DISCORD, AS I DO NOT ACCEPT NEW REQUESTS!***
 
@@ -310,8 +309,7 @@ return
 Here are the Credits to how this was made. If you use this is some way for any reason, I would appreciate credit for this bot, so *please* do not remove the footer in the help command. Also, please do not resell this bot. It took me a while to make, and reselling it is just offensive and wrong.
 - [discord.js's Documentation Pages](https://discord.js.org/#/docs/main/stable/general/welcome) | Helped me with how the discord.js module works, and I always use these Documentation pages when writing code.
 - [Zing Tech Whitelisting Bot](https://github.com/iPanda969/whitelistbot) | Helped me learn how to use the express module almost entirely, also greatly inspired me to make an open source bot for myself with file management.
-- Pivot Tech's Discord | Helped me test this system with a big tech group. (Please go check them out, it is a great example of how this bot can be, and is supposed to be used!)
-- Pivot Tech's Hub | Helped me test this system on the ROBLOX-Side.
+- [Valero's Discord](https://discord.gg/ExCubzW8aq) | Helped me test the firebase branch of this system with a big tech group. (Please go check them out, it is a great example of how this bot can be, and is supposed to be used!)
 
 ## Examples
 Below are a set of Discord Servers that use this bot. You may join then to take a look at how they use it.
