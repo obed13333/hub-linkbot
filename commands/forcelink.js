@@ -1,6 +1,5 @@
 const Discord = require('discord.js')
 const admin = require('firebase-admin');
-const { v5: uuid } = require('uuid');
 const rbx = require('noblox.js');
 module.exports = {
 	name: 'forcelink',
@@ -78,7 +77,6 @@ module.exports = {
                     return
                 }
             } 
-            let index = uuid(args[1], process.env.UUID_NAMESPACE);
             let value = {
                 robloxId: args[1],
                 robloxUsername: robloxUser.username,
@@ -88,7 +86,7 @@ module.exports = {
                 },
                 products: []
             }
-            await database.collection('users').doc(index).set(value)
+            await database.collection('users').add(value)
             let ThisEmbed = new Discord.MessageEmbed()
                 .setColor(Number(process.env.BOT_EMBEDCOLOR))
                 .setAuthor(message.author.username, message.author.displayAvatarURL())
