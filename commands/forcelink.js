@@ -1,5 +1,5 @@
 const Discord = require('discord.js')
-const editJsonFile = require('edit-json-file');
+const admin = require('firebase-admin');
 const { v5: uuid } = require('uuid');
 const rbx = require('noblox.js');
 module.exports = {
@@ -52,7 +52,7 @@ module.exports = {
                 if (set) {
                     let index = set.id
                     let value = set.data()
-                    if ((await database.collection('users').doc(the[0]).get()).data().robloxUsername || (await database.collection('users').doc(the[0]).get()).data().robloxUsername !== robloxUser.username) await database.collection('users').doc(the[0]).update({robloxUsername: robloxUser.username})
+                    if ((await database.collection('users').doc(index).get()).data().robloxUsername || (await database.collection('users').doc(index).get()).data().robloxUsername !== robloxUser.username) await database.collection('users').doc(index).update({robloxUsername: robloxUser.username})
                     if (value.verify.status == 'link') {
                         value.verify.value = member.user.id
                         value.verify.status = 'complete'

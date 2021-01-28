@@ -1,5 +1,5 @@
 const Discord = require('discord.js')
-const editJsonFile = require('edit-json-file');
+const admin = require('firebase-admin');
 const request = require('request');
 const fs = require('fs');
 module.exports = {
@@ -86,7 +86,7 @@ module.exports = {
             request.get(fileMessage.attachments.first().url)
                 .on('error', console.error)
                 .pipe(fs.createWriteStream('product-files/'+index+'.'+ext[ext.length - 1]));
-            await database.collection('products').doc(index).update({ path: 'product-files/'+index+'.'+ext[ext.length - 1] })
+            await database.collection('products').doc(index).set({ name: name, path: 'product-files/'+index+'.'+ext[ext.length - 1] })
             let ThisEmbed = new Discord.MessageEmbed()
                 .setColor(Number(process.env.BOT_EMBEDCOLOR))
                 .setAuthor(message.author.username, message.author.displayAvatarURL())
@@ -102,7 +102,7 @@ module.exports = {
             request.get(message.attachments.first().url)
                 .on('error', console.error)
                 .pipe(fs.createWriteStream('product-files/'+index+'.'+ext[ext.length - 1]));
-            await database.collection('products').doc(index).update({ path: 'product-files/'+index+'.'+ext[ext.length - 1] })
+                await database.collection('products').doc(index).set({ name: name, path: 'product-files/'+index+'.'+ext[ext.length - 1] })
             let ThisEmbed = new Discord.MessageEmbed()
                 .setColor(Number(process.env.BOT_EMBEDCOLOR))
                 .setAuthor(message.author.username, message.author.displayAvatarURL())

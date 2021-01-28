@@ -1,5 +1,4 @@
 const Discord = require('discord.js');
-const editJsonFile = require('edit-json-file');
 const fs = require('fs');
 module.exports = {
 	name: 'restart',

@@ -1,5 +1,5 @@
 const Discord = require('discord.js')
-const editJsonFile = require('edit-json-file');
+const admin = require('firebase-admin');
 module.exports = {
 	name: 'profile',
 	description: 'Displays all information stored about a user.',

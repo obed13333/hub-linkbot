@@ -1,5 +1,5 @@
 const Discord = require('discord.js')
-const editJsonFile = require('edit-json-file');
+const admin = require('firebase-admin');
 module.exports = {
 	name: 'forceunlink',
 	description: 'Forcefully unlinks a selected Discord Account to your Registered User.',
@@ -45,7 +45,7 @@ module.exports = {
             if (set) {
                 let index = set.id
                 let value = set.data()
-                function randomString(length, chars) {
+                async function randomString(length, chars) {
                     var mask = '';
                     if (chars.indexOf('a') > -1) mask += 'abcdefghijklmnopqrstuvwxyz';
                     if (chars.indexOf('A') > -1) mask += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -54,10 +54,10 @@ module.exports = {
                     var result = '';
                     for (var i = length; i > 0; --i) result += mask[Math.floor(Math.random() * mask.length)];
                     var links = await database.collection('users').get()
-                    if (!links.empty) if (links.docs.find(k => {if (k.data().verify.status == 'link') {return k.data().verify.value == result} else {return false}})) return randomString(length, chars)
+                    if (links) if (links.docs.find(k => {if (k.data().verify.status == 'link') {return k.data().verify.value == result} else {return false}})) return await randomString(length, chars)
                     return result;
                 }
-                let linkCode = randomString(6, 'a#');
+                let linkCode = await randomString(6, 'a#');
                 await database.collection('users').doc(index).update({verify: {status:'link',value:linkCode}})
                 await bot.functions.updateMember(guild.members.cache.find(m => m.user.id == member.user.id))
                 let ThisEmbed = new Discord.MessageEmbed()

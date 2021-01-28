@@ -9,18 +9,22 @@ const express = require('express');
 const axios = require('axios');
 const requestIp = require('request-ip');
 const rateLimit = require("express-rate-limit");
-const editJsonFile = require('edit-json-file');
-const { v5 } = require('uuid');
 const rbx = require('noblox.js');
 const admin = require('firebase-admin');
 var http = require('http');
 // var https = require('https');
 
 // DATABASE HANDLING
-var serviceAccount = require("firebase.json");
+var serviceAccount = require("./firebase.json");
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount)
 });
+if (process.argv[2] !== '--restarted') console.info('FIREBASE | Online!');
+async function InitializeDatabase() {
+    let database = admin.firestore();
+
+}
+InitializeDatabase()
 
 // DISCORD CLIENT HANDLING
 const intents = new Discord.Intents([ //  ADDITION COURTESY OF DarkMatterMatt ON GITHUB!
@@ -76,10 +80,10 @@ bot.functions.updateMember = async (member) => {
     let the = format.find(u => {if (u.data().verify.status == 'complete') {return u.data().verify.value == member.user.id} else {return false}})
     if (the) {
         var NotFound = false
-        let robloxUser = await rbx.getPlayerInfo(the[1].robloxId)
+        let robloxUser = await rbx.getPlayerInfo(the.data().robloxId)
             .catch(err => {if (err) {NotFound = true}})
         if (NotFound) return false
-        if ((await database.collection('users').doc(the[0]).get()).data().robloxUsername || (await database.collection('users').doc(the[0]).get()).data().robloxUsername !== robloxUser.username) await database.collection('users').doc(the[0]).update({robloxUsername: robloxUser.username})
+        if ((await database.collection('users').doc(the.id).get()).data().robloxUsername || (await database.collection('users').doc(the.id).get()).data().robloxUsername !== robloxUser.username) await database.collection('users').doc(the.id).update({robloxUsername: robloxUser.username})
         if (!member.roles.cache.get(process.env.BOT_VERIFIEDROLEID)) await member.roles.add(roleResolved); 
         return robloxUser.username
     }
@@ -90,21 +94,23 @@ bot.functions.giveProduct = async (member, pid) => {
     let users = await database.collection('users').get()
     let format = users.docs
     let the = format.find(u => {if (u.data().verify.status == 'complete') {return u.data().verify.value == member.user.id} else {return false}})
-    let index = the[0]
-    let user = the[1]
+    let index = the.id
+    let user = the.data()
     user.products.push(pid)
     await database.collection('users').doc(index).update({products: user.products})
     return await bot.functions.sendFile(member, pid)
 };
-bot.functions.revokeProduct = (uid, pid) => {
+bot.functions.revokeProduct = async (uid, pid) => {
     let database = admin.firestore();
     let users = await database.collection('users').get()
     let format = users.docs
     let the = format.find(u => {if (u.data().verify.status == 'complete') {return u.data().verify.value == uid} else {return false}})
-    let index = the[0]
-    let user = the[1]
+    if (!the) return false
+    let index = the.id
+    let user = the.data()
     user.products.splice(user.products.indexOf(pid), 1)
     await database.collection('users').doc(index).update({products: user.products})
+    return true
 };
 for (const file of fs.readdirSync('./commands').filter(file => file.endsWith('.js'))) {
     const command = require(`./commands/${file}`);
@@ -236,13 +242,12 @@ app.get('/user/:robloxid/', async (request, response) => {
         if (set) {
             let index = set.id
             let value = set.data()
-            if ((await database.collection('users').doc(the[0]).get()).data().robloxUsername || (await database.collection('users').doc(the[0]).get()).data().robloxUsername !== robloxUser.username) await database.collection('users').doc(the[0]).update({robloxUsername: robloxUser.username})
+            if ((await database.collection('users').doc(index).get()).data().robloxUsername || (await database.collection('users').doc(index).get()).data().robloxUsername !== robloxUser.username) await database.collection('users').doc(index).update({robloxUsername: robloxUser.username})
             response.status(200);
             response.json({ status: 'ok', index: index, value: value })
             return
         }
-        
-        function randomString(length, chars) {
+        async function randomString(length, chars) {
             var mask = '';
             if (chars.indexOf('a') > -1) mask += 'abcdefghijklmnopqrstuvwxyz';
             if (chars.indexOf('A') > -1) mask += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -251,11 +256,10 @@ app.get('/user/:robloxid/', async (request, response) => {
             var result = '';
             for (var i = length; i > 0; --i) result += mask[Math.floor(Math.random() * mask.length)];
             var links = await database.collection('users').get()
-            if (links) if (links.docs.find(k => {if (k.data().verify.status == 'link') {return k.data().verify.value == result} else {return false}})) return randomString(length, chars)
+            if (links) if (links.docs.find(k => {if (k.data().verify.status == 'link') {return k.data().verify.value == result} else {return false}})) return await randomString(length, chars)
             return result;
         }
-        let linkCode = randomString(6, 'a#');
-        let index = v5(request.params.robloxid, process.env.UUID_NAMESPACE);
+        let linkCode = await randomString(6, 'a#');
         let value = {
             robloxId: request.params.robloxid,
             robloxUsername: robloxUser.username,
@@ -265,9 +269,9 @@ app.get('/user/:robloxid/', async (request, response) => {
             },
             products: []
         }
-        await database.collection('users').doc(index).set(value)
+        let userDefined = await database.collection('users').add(value);
         response.status(200);
-        response.json({ status: 'ok', index: index, value: value })
+        response.json({ status: 'ok', index: userDefined.id, value: value })
     } else {
         response.status(200);
         response.json({ status: 'error', error: 'Not found.' })
@@ -461,7 +465,7 @@ app.get('/products/revoke/:productid/:robloxid/', async (request, response) => {
         response.json({ status: 'error', error: 'Product not found.' });
         return
     }
-    let users = database.collection('users')
+    let users = await database.collection('users').get()
     if (users) {
         let formatted = users.docs
         let me = formatted.find(u => {if (u.data().verify.status == 'complete') {return u.data().robloxId == request.params.robloxid} else {return false}})
@@ -477,9 +481,9 @@ app.get('/products/revoke/:productid/:robloxid/', async (request, response) => {
             return
         }
         let guild = bot.guilds.cache.get(process.env.BOT_PRIMARYGUILD)
-        bot.functions.revokeProduct(guild.members.cache.find(m => m.user.id == user.verify.value), request.params.productid)
+        let success = await bot.functions.revokeProduct(user.verify.value, request.params.productid)
         response.status(200);
-        response.json({ status: 'ok', success: true })
+        response.json({ status: 'ok', success: success })
     }
 });
 app.use(async (request, response, next) => {
@@ -565,9 +569,6 @@ bot.on('ready', async () => {
         });
     }
 });
-bot.login(process.env.BOT_TOKEN);
-bot.httpServer = http.createServer(app).listen(process.env.PORT || process.env.HUB_ACCESSPORT || 8080)
-if (process.argv[2] !== '--restarted') console.info('WEB | Online!');
 
 async function StartApp() {
     await bot.login(process.env.BOT_TOKEN);

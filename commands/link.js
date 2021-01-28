@@ -1,5 +1,5 @@
 const Discord = require('discord.js')
-const editJsonFile = require('edit-json-file');
+const admin = require('firebase-admin');
 const { getOwnership } = require('noblox.js');
 module.exports = {
 	name: 'link',
