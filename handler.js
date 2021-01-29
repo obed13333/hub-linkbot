@@ -20,11 +20,6 @@ admin.initializeApp({
     credential: admin.credential.cert(serviceAccount)
 });
 if (process.argv[2] !== '--restarted') console.info('FIREBASE | Online!');
-async function InitializeDatabase() {
-    let database = admin.firestore();
-
-}
-InitializeDatabase()
 
 // DISCORD CLIENT HANDLING
 const intents = new Discord.Intents([ //  ADDITION COURTESY OF DarkMatterMatt ON GITHUB!

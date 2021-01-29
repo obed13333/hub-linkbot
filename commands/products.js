@@ -24,7 +24,7 @@ module.exports = {
             return
         }
         let products = await database.collection('products').get()
-        let entries = Object.entries(products)
+        let entries = products.docs
         if (entries.length == 0) {
             let ThisEmbed = new Discord.MessageEmbed()
                 .setColor(Number(process.env.BOT_EMBEDCOLOR))
@@ -41,7 +41,7 @@ module.exports = {
             .setAuthor(message.author.username, message.author.displayAvatarURL())
             .setTitle('**Products Information**')
             .addField('Status', ':white_check_mark: **Complete!**', true)
-            .addField('Products', entries.map(v => `**${v[1].name}** \`${v[0]}\``), true)
+            .addField('Products', entries.map(v => `**${v.data().name}** \`${v.id}\``), true)
             .setThumbnail(guild.iconURL())
         await message.channel.send(ThisEmbed)
 	}
