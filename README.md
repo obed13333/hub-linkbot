@@ -19,7 +19,7 @@ To install this Discord Bot, you will need to do the following:
         - Use a domain name. (I have no experience with Domains, so do not trust this security precaution or go out of your way to get this.)
     - If you are using your local computer on a home WiFi network, you need to figure out how to Port Forward the port you plan to use for this system.
 2. Ensure it has the [Node.js](https://nodejs.org/en/) engine installed.
-3. Clone this repository with `git clone https://github.com/jdwoj5/hub-linkbot`
+3. Clone this repository with `git clone -b firebase https://github.com/jdwoj5/hub-linkbot`
 4. Create a [Discord Application](https://discord.com/developers/applications) with a Bot created in the Bot Section. **Make sure you enable the Server Members Intent!**
 5. Create a file named `.env` in the main folder/directory to store crucial information. 
     - Paste the following into your `.env` file:
@@ -30,7 +30,7 @@ To install this Discord Bot, you will need to do the following:
     BOT_PREFIX=
     BOT_PRIMARYGUILD=
     BOT_VERIFIEDROLEID=
-	BOT_LOGCHANNELID=
+    BOT_LOGCHANNELID=
 
     # WEB CONFIGURATION
     HUB_ACCESSPORT=
@@ -38,7 +38,6 @@ To install this Discord Bot, you will need to do the following:
 
     # KEYS
     HUB_APIKEY=
-    UUID_NAMESPACE=
     ```
     - Input your `.env` information as shown below:
         - `BOT_EMBEDCOLOR` Set this to the color [(in decimal value)](https://spycolor.com/) you wish your embeds to have. (Recommended: `2303786`)
