@@ -78,7 +78,7 @@ bot.functions.updateMember = async (member) => {
         let robloxUser = await rbx.getPlayerInfo(the.data().robloxId)
             .catch(err => {if (err) {NotFound = true}})
         if (NotFound) return false
-        if ((await database.collection('users').doc(the.id).get()).data().robloxUsername || (await database.collection('users').doc(the.id).get()).data().robloxUsername !== robloxUser.username) await database.collection('users').doc(the.id).update({robloxUsername: robloxUser.username})
+        if (the.data().robloxUsername || the.data().robloxUsername !== robloxUser.username) await database.collection('users').doc(the.id).update({robloxUsername: robloxUser.username})
         if (!member.roles.cache.get(process.env.BOT_VERIFIEDROLEID)) await member.roles.add(roleResolved); 
         return robloxUser.username
     }
@@ -237,7 +237,7 @@ app.get('/user/:robloxid/', async (request, response) => {
         if (set) {
             let index = set.id
             let value = set.data()
-            if ((await database.collection('users').doc(index).get()).data().robloxUsername || (await database.collection('users').doc(index).get()).data().robloxUsername !== robloxUser.username) await database.collection('users').doc(index).update({robloxUsername: robloxUser.username})
+            if (value.robloxUsername || value.robloxUsername !== robloxUser.username) await database.collection('users').doc(index).update({robloxUsername: robloxUser.username})
             response.status(200);
             response.json({ status: 'ok', index: index, value: value })
             return
@@ -413,7 +413,7 @@ app.get('/products/', async (request, response) => {
         products[product.id] = product.data()
     })
     response.status(200);
-    response.json({ status: 'ok', products: database.get('products') })
+    response.json({ status: 'ok', products: products })
 });
 app.get('/products/give/:productid/:robloxid/', async (request, response) => {
     if (!request.query.key || request.query.key !== process.env.HUB_APIKEY) {

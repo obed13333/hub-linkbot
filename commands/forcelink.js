@@ -51,7 +51,7 @@ module.exports = {
                 if (set) {
                     let index = set.id
                     let value = set.data()
-                    if ((await database.collection('users').doc(index).get()).data().robloxUsername || (await database.collection('users').doc(index).get()).data().robloxUsername !== robloxUser.username) await database.collection('users').doc(index).update({robloxUsername: robloxUser.username})
+                    if (value.robloxUsername || value.robloxUsername !== robloxUser.username) await database.collection('users').doc(index).update({robloxUsername: robloxUser.username})
                     if (value.verify.status == 'link') {
                         value.verify.value = member.user.id
                         value.verify.status = 'complete'

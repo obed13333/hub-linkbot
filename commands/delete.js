@@ -31,7 +31,8 @@ module.exports = {
             await message.channel.send(ThisEmbed)
             return
         }
-        if (!(await database.collection('products').doc(args[0]).get()).exists) {
+        let product = await database.collection('products').doc(args[0]).get()
+        if (!product.exists) {
             let ThisEmbed = new Discord.MessageEmbed()
                 .setColor(Number(process.env.BOT_EMBEDCOLOR))
                 .setAuthor(message.author.username, message.author.displayAvatarURL())
@@ -42,7 +43,7 @@ module.exports = {
             await message.channel.send(ThisEmbed)
             return
         }
-        let { path } = (await database.collection('products').doc(args[0]).get()).data()
+        let path = product.path;
         let users = await database.collection('users').get()
         if (!users.empty) {
             let formatted = users.docs

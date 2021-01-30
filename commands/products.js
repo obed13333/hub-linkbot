@@ -12,7 +12,8 @@ module.exports = {
 	run: async (bot, message, args) => {
         let database = admin.firestore();
         let guild = bot.guilds.cache.get(process.env.BOT_PRIMARYGUILD)
-        if ((await database.collection('products').get()).empty) {
+        let products = await database.collection('products').get()
+        if (products.empty) {
             let ThisEmbed = new Discord.MessageEmbed()
                 .setColor(Number(process.env.BOT_EMBEDCOLOR))
                 .setAuthor(message.author.username, message.author.displayAvatarURL())
@@ -23,7 +24,6 @@ module.exports = {
             await message.channel.send(ThisEmbed)
             return
         }
-        let products = await database.collection('products').get()
         let entries = products.docs
         if (entries.length == 0) {
             let ThisEmbed = new Discord.MessageEmbed()
