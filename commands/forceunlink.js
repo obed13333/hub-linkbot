@@ -17,6 +17,17 @@ module.exports = {
     ],
     cooldown: 10,
 	run: async (bot, message, args) => {
+        if (!(args.length >= 1)) {
+            let ThisEmbed = new Discord.MessageEmbed()
+                .setColor(Number(process.env.BOT_EMBEDCOLOR))
+                .setAuthor(message.author.username, message.author.displayAvatarURL())
+                .setTitle('**Force Unlink Information**')
+                .addField('Status', ':x: **Cancelled!**', true)
+                .addField('Error', 'Incorrect arguments.', true)
+                .setThumbnail(guild.iconURL())
+            await message.channel.send(ThisEmbed)
+            return
+        }
         let database = admin.firestore();
         let users = await database.collection('users').get()
         let guild = bot.guilds.cache.get(process.env.BOT_PRIMARYGUILD)
